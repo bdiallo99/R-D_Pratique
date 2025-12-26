@@ -112,3 +112,22 @@ des tests de connectivité (ping) entre hôtes,
 des tests de trafic HTTP,
 
 la vérification des flows OpenFlow installés sur le switch.
+
+## Segmentation dynamique (Ryu / OpenFlow 1.3)
+
+Ce module `segmentation_dynamique.py` implémente une micro-segmentation “Zero Trust” sur un switch Open vSwitch contrôlé par Ryu.
+
+**Règles appliquées :**
+- **h4 est totalement isolé** (ARP + IPv4 bloqués dès qu’il est source ou destination)
+- **ICMP (ping) autorisé uniquement entre h1, h2 et h3**
+- **HTTP/HTTPS autorisé de h1/h2 vers h3** (ports 80 et 443) + réponses de h3 vers h1/h2
+- Tout le reste est refusé par défaut
+
+**Fonctionnement :**
+- Le contrôleur apprend les ports via **MAC learning**
+- Les flux autorisés sont ensuite installés dynamiquement dans le switch pour éviter de repasser au contrôleur à chaque paquet
+
+**Lancement :**
+```bash
+ryu-manager segmentation_dynamique.py
+
