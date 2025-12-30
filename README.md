@@ -131,3 +131,30 @@ Ce module `segmentation_dynamique.py` implémente une micro-segmentation “Zero
 ```bash
 ryu-manager segmentation_dynamique.py
 
+Monitoring (Étape 3) 
+
+** Nettoyer OVS/Mininet : sudo mn -c
+
+** Lancer le contrôleur avec télémétrie (dans ~/projet) :**
+ryu-manager segmentation_dynamique_telemetrie.py
+
+**Lancer la topologie (autre terminal) :**
+sudo python3 topo.py
+
+Vérifier que le switch reçoit des flows :
+sudo ovs-ofctl -O OpenFlow13 dump-flows s1
+
+Test ping autorisé (dans Mininet CLI) : h1 ping -c 3 h2
+→ tu dois voir des logs [FLOW-STATS] ... packets/bytes côté contrôleur.
+
+Lancer un serveur HTTP sur h3 : h3 python3 -m http.server 80
+
+HTTP autorisé depuis h1/h2 : h1 curl -I http://10.0.0.3 et h2 curl -I http://10.0.0.3
+
+HTTP interdit depuis h4 : h4 curl -I http://10.0.0.3
+→ le contrôleur affiche DROP ...
+
+**Simuler un scan de ports depuis h1 :**
+h1 bash -c 'for p in $(seq 1 30); do timeout 0.2 bash -c "echo >/dev/tcp/10.0.0.3/$p" 2>/dev/null; done'
+
+Résultat attendu : logs [SCAN?] src=10.0.0.1 tried X unique TCP dst ports... + DROP IPv4 ... proto=6 pour les ports non autorisés.
