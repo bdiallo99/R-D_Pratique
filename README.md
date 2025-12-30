@@ -158,3 +158,21 @@ HTTP interdit depuis h4 : h4 curl -I http://10.0.0.3
 h1 bash -c 'for p in $(seq 1 30); do timeout 0.2 bash -c "echo >/dev/tcp/10.0.0.3/$p" 2>/dev/null; done'
 
 Résultat attendu : logs [SCAN?] src=10.0.0.1 tried X unique TCP dst ports... + DROP IPv4 ... proto=6 pour les ports non autorisés.
+
+**Étape 4 — Score de confiance + Révocation (heuristique)**
+
+Le fichier score.py ajoute un score de confiance par hôte (IP source) (0→100, initialement 100).
+Le score baisse quand le contrôleur détecte : scan de ports (beaucoup de ports TCP différents en peu de temps), débit sortant anormal (via FlowStats), ou accès non prévu (trafic “DROP”).
+Révocation simple : si trust < MIN_TRUST_TO_ALLOW (par défaut 50), alors même le trafic normalement autorisé est bloqué.
+
+Tests rapides
+
+Lancer le contrôleur : ryu-manager score.py
+
+Lancer la topo : sudo python3 topo.py
+
+Provoquer un scan (depuis Mininet) : h1 bash -c 'for p in $(seq 1 30); do nc -z -w1 10.0.0.3 $p; done' → voir [SCAN?] + [TRUST]
+
+Vérifier la révocation : refaire h1 ping h3 ou curl http://10.0.0.3 → doit finir en DROP ... (trust=...) quand le score passe sous le seuil
+
+Contrôler les logs du contrôleur : messages [TRUST], [SCAN?], [OUT-THROUGHPUT?], DROP IPv4 ... (trust=...)
